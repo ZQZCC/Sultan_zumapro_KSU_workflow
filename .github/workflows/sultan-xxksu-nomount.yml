@@ -47,7 +47,7 @@ jobs:
         id: meta
         run: |
           S_TAG=$(git -C sultan tag --sort=-committerdate | head -n1 || echo "latest")
-          K_VER=$(./sh/get_ksuver.sh "backslashxx" "KernelSU" "${{ env.KSU_BRANCH }}" || echo "unknown")
+          K_VER=$(./sh/get_ksuver.sh "ZQZCC" "xxKSU" "${{ env.KSU_BRANCH }}" || echo "unknown")
           echo "ksu_ver=$K_VER" >> "$GITHUB_OUTPUT"
           echo "s_tag=$S_TAG" >> "$GITHUB_OUTPUT"
 
@@ -253,7 +253,7 @@ jobs:
             | Component | Details |
             | :--- | :--- |
             | **Sultan** | \`$S_TAG\` |
-            | **Manager** | [xxKSU](https://github.com/backslashxx/KernelSU) |
+            | **Manager** | [KaSU](https://github.com/ZQZCC/xxKSU) |
             | **xxKSU** | \`$KSU_VER\` |
             | **NoMount** | \`v1.0.0\` |
             | **Compiler** | \`$GCC_VERSION\` |
