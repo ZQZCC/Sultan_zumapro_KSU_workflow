@@ -11,7 +11,7 @@ env:
   ANYKERNEL_REPO: https://github.com/TheWildJames/AnyKernel3.git
   PATCHES_REPO: https://github.com/yapixel/kernel_patches
   SCRIPTS_REPO: https://github.com/TheSillyOk/sh
-  KSU_REPO: backslashxx/KernelSU
+  KSU_REPO: ZQZCC/xxKSU
   KSU_BRANCH: master
   GCC_VERSION: "14.2.rel1"
 
