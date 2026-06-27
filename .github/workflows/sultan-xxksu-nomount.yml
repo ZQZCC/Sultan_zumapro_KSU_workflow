@@ -62,12 +62,12 @@ jobs:
       - name: NoMount & Patches
         working-directory: sultan
         run: |
-          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/src/nomount.c" -o ./fs/nomount.c
-          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/src/nomount.h" -o ./fs/nomount.h
-          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/patches/nomount_6.1_kernel_integration.patch" -o nomount.patch
-          #curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/src/nomount.c" -o ./fs/nomount.c
-          #curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/src/nomount.h" -o ./fs/nomount.h
-          #curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/patches/nomount_6.1_kernel_integration.patch" -o nomount.patch
+          #curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/src/nomount.c" -o ./fs/nomount.c
+          #curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/src/nomount.h" -o ./fs/nomount.h
+          #curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/patches/nomount_6.1_kernel_integration.patch" -o nomount.patch
+          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/src/nomount.c" -o ./fs/nomount.c
+          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/src/nomount.h" -o ./fs/nomount.h
+          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/patches/nomount_6.1_kernel_integration.patch" -o nomount.patch
           patch -p1 < nomount.patch
             
 
