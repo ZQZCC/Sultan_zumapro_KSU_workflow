@@ -258,7 +258,7 @@ jobs:
             | **Sultan** | \`$S_TAG\` |
             | **Manager** | [KaSU](https://github.com/ZQZCC/xxKSU) |
             | **xxKSU** | \`$KSU_VER\` |
-            | **NoMount** | \`v1.0.0\` |
+            | **NoMount** | \`v1.1.0\` |
             | **Compiler** | \`$GCC_VERSION\` |
             
             ### 🛠️ Networking Features (Fortress)
