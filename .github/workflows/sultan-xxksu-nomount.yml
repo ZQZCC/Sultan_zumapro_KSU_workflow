@@ -13,7 +13,8 @@ env:
   SCRIPTS_REPO: https://github.com/TheSillyOk/sh
   KSU_REPO: ZQZCC/xxKSU
   KSU_BRANCH: master
-  GCC_VERSION: "14.2.rel1"
+  CLANG_VERSION: "r487747c"
+  CLANG_PREBUILT_BRANCH: android-gs-caimito-6.1-android14-qpr3-d1
 
 jobs:
   build:
@@ -27,14 +28,36 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install GCC
+      - name: Cache AOSP Clang
+        uses: actions/cache@v4
+        with:
+          path: clang-prebuilts/clang-${{ env.CLANG_VERSION }}
+          key: aosp-clang-${{ runner.os }}-${{ env.CLANG_VERSION }}
+
+      - name: Install AOSP Clang
         run: |
-          BASE_URL="https://developer.arm.com/-/media/Files/downloads/gnu/"${{ env.GCC_VERSION }}"/binrel/"
-          ARCHIVE="arm-gnu-toolchain-"${{ env.GCC_VERSION }}"-x86_64-aarch64-none-linux-gnu.tar.xz"
-          
-          wget -q "${BASE_URL}/${ARCHIVE}" -O gcc.tar.gz
-          tar -xf gcc.tar.gz
-          echo "GCC_PATH=$GITHUB_WORKSPACE/arm-gnu-toolchain-${{ env.GCC_VERSION }}-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-" >> "$GITHUB_ENV"
+          if [ ! -d "clang-prebuilts/clang-${{ env.CLANG_VERSION }}" ]; then
+            rm -rf clang-prebuilts
+            git clone --depth=1 --filter=blob:none --sparse -b "${{ env.CLANG_PREBUILT_BRANCH }}" https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 clang-prebuilts
+            git -C clang-prebuilts sparse-checkout set "clang-${{ env.CLANG_VERSION }}"
+          fi
+          echo "CLANG_PATH=$GITHUB_WORKSPACE/clang-prebuilts/clang-${{ env.CLANG_VERSION }}/bin" >> "$GITHUB_ENV"
+
+      - name: Install ccache
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ccache
+          ccache -M 5G
+          ccache -o compiler_check=content
+          ccache -o compression=true
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ env.CLANG_VERSION }}-${{ github.ref_name }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ env.CLANG_VERSION }}-
 
       - name: Clone Source
         run: |
@@ -83,11 +106,11 @@ jobs:
 
       - name: Inject Configuration (Fortress Deep Unlock)
         working-directory: sultan
-        env:
-          CROSS_COMPILE: ${{ env.GCC_PATH }}
-          CC: ${{ env.GCC_PATH }}gcc
         run: |
-          make O=out CROSS_COMPILE="$CROSS_COMPILE" CC="$CC" zumapro_defconfig
+          export PATH="${CLANG_PATH}:$PATH"
+          clang --version
+          ld.lld --version
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC="ccache clang" zumapro_defconfig
           
           cat >> out/.config <<EOF
           # --- Core System & FS ---
@@ -176,17 +199,18 @@ jobs:
           CONFIG_INOTIFY_USER=y
           EOF
           
-          make O=out CROSS_COMPILE="$CROSS_COMPILE" CC="$CC" olddefconfig
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC="ccache clang" olddefconfig
 
       - name: Build Kernel (Production)
         working-directory: sultan
         env:
           KBUILD_BUILD_USER: build-user
           KBUILD_BUILD_HOST: build-host
-          CROSS_COMPILE: ${{ env.GCC_PATH }}
-          CC: ${{ env.GCC_PATH }}gcc
         run: |
-          make O=out CROSS_COMPILE="$CROSS_COMPILE" CC="$CC" -j"$(nproc --all)"
+          export PATH="${CLANG_PATH}:$PATH"
+          ccache -z
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC="ccache clang" -j"$(nproc --all)"
+          ccache -s
 
       - name: Package
         run: |
@@ -255,7 +279,7 @@ jobs:
             | **Manager** | [KaSU](https://github.com/ZQZCC/xxKSU) |
             | **xxKSU** | \`$KSU_VER\` |
             | **NoMount** | \`v1.1.0\` |
-            | **Compiler** | \`$GCC_VERSION\` |
+            | **Compiler** | \`AOSP Clang $CLANG_VERSION\` |
             
             ### 🛠️ Networking Features (Fortress)
             - **TCP Congestion:** BBR (v1) + FQ
