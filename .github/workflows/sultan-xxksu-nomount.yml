@@ -92,9 +92,10 @@ jobs:
         working-directory: sultan
         run: |
           export PATH="${CLANG_PATH}:$PATH"
+          OUT_DIR="$PWD/out"
           clang --version
           ld.lld --version
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 zumapro_defconfig
+          make O="$OUT_DIR" ARCH=arm64 LLVM=1 LLVM_IAS=1 zumapro_defconfig
           
           cat >> out/.config <<EOF
           # --- Core System & FS ---
@@ -183,7 +184,7 @@ jobs:
           CONFIG_INOTIFY_USER=y
           EOF
           
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
+          make O="$OUT_DIR" ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
 
       - name: Build Kernel (Production)
         working-directory: sultan
@@ -192,7 +193,8 @@ jobs:
           KBUILD_BUILD_HOST: build-host
         run: |
           export PATH="${CLANG_PATH}:$PATH"
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 -j"$(nproc --all)" Image.lz4 dtbs
+          OUT_DIR="$PWD/out"
+          make O="$OUT_DIR" ARCH=arm64 LLVM=1 LLVM_IAS=1 -j"$(nproc --all)" Image.lz4 dtbs
 
       - name: Package
         run: |
