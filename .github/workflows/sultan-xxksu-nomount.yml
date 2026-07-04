@@ -43,22 +43,6 @@ jobs:
           fi
           echo "CLANG_PATH=$GITHUB_WORKSPACE/clang-prebuilts/clang-${{ env.CLANG_VERSION }}/bin" >> "$GITHUB_ENV"
 
-      - name: Install ccache
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ccache
-          ccache -M 5G
-          ccache -o compiler_check=content
-          ccache -o compression=true
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ccache
-          key: ccache-${{ runner.os }}-${{ env.CLANG_VERSION }}-${{ github.ref_name }}
-          restore-keys: |
-            ccache-${{ runner.os }}-${{ env.CLANG_VERSION }}-
-
       - name: Clone Source
         run: |
           git clone --depth=1 https://github.com/ZQZCC/android_kernel_google_tensynos -b 16.0.0-sultan sultan
@@ -110,7 +94,7 @@ jobs:
           export PATH="${CLANG_PATH}:$PATH"
           clang --version
           ld.lld --version
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC="ccache clang" zumapro_defconfig
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 zumapro_defconfig
           
           cat >> out/.config <<EOF
           # --- Core System & FS ---
@@ -199,7 +183,7 @@ jobs:
           CONFIG_INOTIFY_USER=y
           EOF
           
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC="ccache clang" olddefconfig
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
 
       - name: Build Kernel (Production)
         working-directory: sultan
@@ -208,9 +192,7 @@ jobs:
           KBUILD_BUILD_HOST: build-host
         run: |
           export PATH="${CLANG_PATH}:$PATH"
-          ccache -z
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC="ccache clang" -j"$(nproc --all)"
-          ccache -s
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 -j"$(nproc --all)"
 
       - name: Package
         run: |
