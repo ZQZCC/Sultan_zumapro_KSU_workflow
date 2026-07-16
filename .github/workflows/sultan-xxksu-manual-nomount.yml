@@ -356,5 +356,5 @@ jobs:
 
           gh release create "$TAG" "$ZIP_FILE" \
             --target "$GITHUB_SHA" \
-            --title "Sultan xxKSU NoMount Manual Hooks BBRv3 - $TAG" \
+            --title "Kernel Build - $TAG" \
             --notes-file release-notes.md
