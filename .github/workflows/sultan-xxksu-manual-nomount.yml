@@ -1,4 +1,4 @@
-name: Build Sultan + xxKSU + NoMount + Manual Hooks + BBRv3
+name: Build Sultan + xxKSU Manual + NoMount
 
 on:
   workflow_dispatch:
