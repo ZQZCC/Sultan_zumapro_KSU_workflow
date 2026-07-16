@@ -323,7 +323,7 @@ jobs:
           NOMOUNT_REV: ${{ needs.build.outputs.nomount_rev }}
           NOMOUNT_TAG: ${{ needs.build.outputs.nomount_tag }}
         run: |
-          ZIP_FILE=$(find ./artifacts -name 'Sultan-zumapro-xxKSU-*-NoMount-ManualHooks-BBRv3.zip' -type f -print -quit)
+          ZIP_FILE=$(find ./artifacts -name 'Sultan-zumapro-xxKSU-*-NoMount-BBRv3.zip' -type f -print -quit)
           if [ -z "$ZIP_FILE" ]; then
             echo "::error::The xxKSU NoMount Manual Hooks BBRv3 zip was not downloaded"
             exit 1
