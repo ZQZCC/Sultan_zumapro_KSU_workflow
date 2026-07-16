@@ -9,11 +9,10 @@ permissions:
 
 env:
   ANYKERNEL_REPO: https://github.com/TheWildJames/AnyKernel3.git
-  PATCHES_REPO: https://github.com/yapixel/kernel_patches
   SCRIPTS_REPO: https://github.com/TheSillyOk/sh
   KSU_REPO: ZQZCC/xxKSU
   KSU_BRANCH: master
-  GCC_VERSION: "14.2.rel1"
+  GCC_VERSION: "15.3.rel1"
 
 jobs:
   build:
@@ -32,18 +31,17 @@ jobs:
 
       - name: Install GCC
         run: |
-          BASE_URL="https://developer.arm.com/-/media/Files/downloads/gnu/"${{ env.GCC_VERSION }}"/binrel/"
           ARCHIVE="arm-gnu-toolchain-"${{ env.GCC_VERSION }}"-x86_64-aarch64-none-linux-gnu.tar.xz"
-          
-          wget -q "${BASE_URL}/${ARCHIVE}" -O gcc.tar.gz
-          tar -xf gcc.tar.gz
+          URL="https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/${{ env.GCC_VERSION }}/${ARCHIVE}"
+
+          wget -q "$URL" -O "$ARCHIVE"
+          tar -xf "$ARCHIVE"
           echo "GCC_PATH=$GITHUB_WORKSPACE/arm-gnu-toolchain-${{ env.GCC_VERSION }}-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-" >> "$GITHUB_ENV"
 
       - name: Clone Source
         run: |
           git clone --depth=1 https://github.com/ZQZCC/android_kernel_google_tensynos -b 16.0.0-sultan sultan
           git clone --depth=1 "${{ env.ANYKERNEL_REPO }}" -b sultan-zumapro AK3
-          git clone --depth=1 "${{ env.PATCHES_REPO }}" kernel_patches
           git clone --depth=1 "${{ env.SCRIPTS_REPO }}" sh
 
       - name: Metadata
@@ -70,9 +68,10 @@ jobs:
         working-directory: sultan
         run: |
           curl -LSs "https://raw.githubusercontent.com/${{ env.KSU_REPO }}/${{ env.KSU_BRANCH }}/kernel/setup.sh" | bash -s -- "${{ env.KSU_BRANCH }}"
-          patch -p1 < ../kernel_patches/sultan/60_scripts_mkcompile_h.patch
-          patch -p1 < ../kernel_patches/sultan/61_scripts_setlocalversion.patch
-          patch -p1 < ../kernel_patches/sultan/62_init_Makefile.patch
+          git apply --unidiff-zero --check ../patches/sultan-build-metadata.patch
+          git apply --unidiff-zero ../patches/sultan-build-metadata.patch
+          git apply --unidiff-zero --check ../patches/gcc15-init-rodata.patch
+          git apply --unidiff-zero ../patches/gcc15-init-rodata.patch
 
       - name: NoMount & Patches
         working-directory: sultan
@@ -109,7 +108,7 @@ jobs:
             # Core System & FS
             TMPFS_XATTR
             TMPFS_POSIX_ACL
-            # atp4pixel / Advanced Networking
+            # Advanced networking compatibility
             NETFILTER_ADVANCED
             IP_NF_TARGET_TTL
             IP6_NF_TARGET_HL
@@ -167,7 +166,6 @@ jobs:
             KSU_TAMPER_SYSCALL_TABLE
             KSU_LSM_SECURITY_HOOKS
             KSU_THRONE_TRACKER_ALWAYS_THREADED
-            CC_OPTIMIZE_FOR_PERFORMANCE_O3
             SECURITY_NETWORK
             CGROUPS
             CGROUP_BPF
