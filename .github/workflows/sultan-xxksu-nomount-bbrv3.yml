@@ -1,4 +1,4 @@
-name: Build Sultan + xxKSU + NoMount (Manual Hooks)
+name: Build Sultan + xxKSU + NoMount + Manual Hooks + BBRv3
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ env:
 
 jobs:
   build:
-    name: Build zumapro Kernel (Manual Hooks)
+    name: Build zumapro Manual Hooks BBRv3 Kernel
     runs-on: ubuntu-latest
     outputs:
       ksu_ver: ${{ steps.meta.outputs.ksu_ver }}
@@ -73,6 +73,12 @@ jobs:
           patch -p1 < ../kernel_patches/sultan/60_scripts_mkcompile_h.patch
           patch -p1 < ../kernel_patches/sultan/61_scripts_setlocalversion.patch
           patch -p1 < ../kernel_patches/sultan/62_init_Makefile.patch
+
+      - name: Apply BBRv3
+        working-directory: sultan
+        run: |
+          git apply --check ../patches/bbrv3/bbrv3-android14-6.1.patch
+          git apply ../patches/bbrv3/bbrv3-android14-6.1.patch
 
       - name: NoMount & Patches
         working-directory: sultan
@@ -161,12 +167,13 @@ jobs:
             IP_SET_HASH_NETPORT
             IP_SET_HASH_NETIFACE
             IP_SET_LIST_SET
-            # Optional BBR, with CUBIC kept as the default
+            # BBRv3 default, with BBR v1 and CUBIC retained as fallbacks
             TCP_CONG_ADVANCED
             TCP_CONG_CUBIC
             TCP_CONG_BBR
+            TCP_CONG_BBR3
             NET_SCH_FQ
-            DEFAULT_CUBIC
+            DEFAULT_BBR3
             # NoMount and xxKSU
             NOMOUNT
             KSU
@@ -189,6 +196,7 @@ jobs:
             TCP_CONG_WESTWOOD
             TCP_CONG_HTCP
             DEFAULT_BBR
+            DEFAULT_CUBIC
             KSU_ALLOWLIST_WORKAROUND
             KSU_DEBUG
             KSU_KPROBES_KSUD
@@ -216,9 +224,11 @@ jobs:
             IP_SET
             NETFILTER_XT_SET
             IP_SET_HASH_IP
+            TCP_CONG_CUBIC
             TCP_CONG_BBR
+            TCP_CONG_BBR3
             NET_SCH_FQ
-            DEFAULT_CUBIC
+            DEFAULT_BBR3
           )
           for config in "${required_configs[@]}"; do
             if ! grep -q "^CONFIG_${config}=y$" out/.config; then
@@ -231,6 +241,7 @@ jobs:
             INET_IPCOMP
             XFRM_SUB_POLICY
             DEFAULT_BBR
+            DEFAULT_CUBIC
           )
           for config in "${required_disabled_configs[@]}"; do
             if grep -Eq "^CONFIG_${config}=(y|m)$" out/.config; then
@@ -238,8 +249,8 @@ jobs:
               exit 1
             fi
           done
-          grep -q '^CONFIG_DEFAULT_TCP_CONG="cubic"$' out/.config || {
-            echo "::error::CUBIC was not resolved as the default TCP congestion control"
+          grep -q '^CONFIG_DEFAULT_TCP_CONG="bbr3"$' out/.config || {
+            echo "::error::BBRv3 was not resolved as the default TCP congestion control"
             exit 1
           }
 
@@ -263,14 +274,14 @@ jobs:
         run: |
           cp sultan/out/arch/arm64/boot/Image.lz4 AK3/Image.lz4
           cat sultan/out/google-devices/zumapro/dts/*.dtb > AK3/dtb
-          ZIP_NAME="Sultan-zumapro-xxKSU-${{ steps.meta.outputs.ksu_ver }}-NoMount-ManualHooks.zip"
+          ZIP_NAME="Sultan-zumapro-xxKSU-${{ steps.meta.outputs.ksu_ver }}-NoMount-ManualHooks-BBRv3.zip"
           ( cd AK3 && zip -r9 "../$ZIP_NAME" . -x "*.git*" )
           echo "ZIP_PATH=$PWD/$ZIP_NAME" >> "$GITHUB_ENV"
 
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
-          name: Sultan-zumapro-manual-hooks
+          name: Sultan-zumapro-xxksu-nomount-manual-hooks-bbrv3
           path: ${{ env.ZIP_PATH }}
 
   release:
@@ -298,9 +309,9 @@ jobs:
           NOMOUNT_REV: ${{ needs.build.outputs.nomount_rev }}
           NOMOUNT_TAG: ${{ needs.build.outputs.nomount_tag }}
         run: |
-          ZIP_FILE=$(find ./artifacts -name 'Sultan-zumapro-xxKSU-*-NoMount-ManualHooks.zip' -type f -print -quit)
+          ZIP_FILE=$(find ./artifacts -name 'Sultan-zumapro-xxKSU-*-NoMount-ManualHooks-BBRv3.zip' -type f -print -quit)
           if [ -z "$ZIP_FILE" ]; then
-            echo "::error::The manual-hooks flashable zip was not downloaded"
+            echo "::error::The xxKSU NoMount Manual Hooks BBRv3 zip was not downloaded"
             exit 1
           fi
 
@@ -323,7 +334,7 @@ jobs:
 
           ### 🛠️ Networking Features
 
-          - **TCP:** CUBIC (default), BBR + FQ
+          - **TCP:** BBRv3 (default), BBR v1 + CUBIC + FQ
           - **Routing:** Policy routing + IPSet
           - **Network:** TPROXY, IPv6 NAT, XFRM/ESP
 
@@ -331,5 +342,5 @@ jobs:
 
           gh release create "$TAG" "$ZIP_FILE" \
             --target "$GITHUB_SHA" \
-            --title "Sultan xxKSU NoMount Manual Hooks - $TAG" \
+            --title "Sultan xxKSU NoMount Manual Hooks BBRv3 - $TAG" \
             --notes-file release-notes.md

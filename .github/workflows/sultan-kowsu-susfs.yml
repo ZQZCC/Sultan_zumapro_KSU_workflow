@@ -46,8 +46,11 @@ jobs:
       - name: Metadata
         id: meta
         run: |
-          S_TAG=$(git -C sultan tag --sort=-committerdate | head -n1 || echo "latest")
+          S_TAG=$(git -C sultan tag --sort=-committerdate | head -n1)
+          S_TAG=${S_TAG:-latest}
+          S_REV=$(git -C sultan rev-parse HEAD)
           K_VER=$(./sh/get_ksuver.sh "KOWX712" "KernelSU" "${{ env.KSU_BRANCH }}" || echo "unknown")
+          SUSFS_REV=$(git -C susfs4ksu rev-parse HEAD)
           
           SUSFS_PATH="susfs4ksu/kernel_patches/include/linux/susfs.h"
           if [ -f "$SUSFS_PATH" ]; then
@@ -57,12 +60,14 @@ jobs:
           
           echo "ksu_ver=$K_VER" >> "$GITHUB_OUTPUT"
           echo "s_tag=$S_TAG" >> "$GITHUB_OUTPUT"
+          echo "s_rev=$S_REV" >> "$GITHUB_OUTPUT"
           echo "susfs_ver=$SUSFS_VER" >> "$GITHUB_OUTPUT"
+          echo "susfs_rev=$SUSFS_REV" >> "$GITHUB_OUTPUT"
 
           echo "======================================"
-          echo "▶ Sultan Kernel Tag: $S_TAG"
-          echo "▶ KernelSU Version : $K_VER"
-          echo "▶ SuSFS Version    : $SUSFS_VER"
+          echo "Sultan source  : $S_TAG ($S_REV)"
+          echo "KowSU version  : $K_VER"
+          echo "SUSFS source   : $SUSFS_VER ($SUSFS_REV)"
           echo "======================================"
 
       - name: KSU & Patches
@@ -158,7 +163,6 @@ jobs:
           # --- Pillar 3: IPSet Full Suite ---
           CONFIG_IP_SET=y
           CONFIG_NETFILTER_XT_SET=y
-          CONFIG_IP_SET_MAX=65534
           CONFIG_IP_SET_BITMAP_IP=y
           CONFIG_IP_SET_BITMAP_IPMAC=y
           CONFIG_IP_SET_BITMAP_PORT=y
@@ -185,7 +189,7 @@ jobs:
           CONFIG_TCP_CONG_HTCP=n
           CONFIG_DEFAULT_BBR=y
 
-          # --- Pillar 5: xxKSU (Hookless / LSM) ---
+          # --- Pillar 5: KowSU (Syscall Table / LSM) ---
           CONFIG_KSU=y
           CONFIG_KSU_EXTRAS=y
           CONFIG_KSU_ALLOWLIST_WORKAROUND=n
@@ -238,8 +242,6 @@ jobs:
           cp sultan/out/arch/arm64/boot/Image.lz4 AK3/Image.lz4
           cat sultan/out/google-devices/zumapro/dts/*.dtb > AK3/dtb
           
-          CLEAN_S_TAG=$(echo "${{ steps.meta.outputs.s_tag }}" | sed 's/[^a-zA-Oa-z0-9._-]/_/g')
-          
           ZIP_NAME="Sultan-zumapro-KowSU-${{ steps.meta.outputs.ksu_ver }}-SUSFS-mini-${{ steps.meta.outputs.susfs_ver }}.zip"
           ( cd AK3 && zip -r9 "../$ZIP_NAME" . -x "*.git*" )
           echo "ZIP_PATH=$PWD/$ZIP_NAME" >> "$GITHUB_ENV"
@@ -250,27 +252,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           KSU_VER: ${{ steps.meta.outputs.ksu_ver }}
           S_TAG: ${{ steps.meta.outputs.s_tag }}
+          S_REV: ${{ steps.meta.outputs.s_rev }}
           SUSFS_VER: ${{ steps.meta.outputs.susfs_ver }}
+          SUSFS_REV: ${{ steps.meta.outputs.susfs_rev }}
         run: |
           DATE=$(date +"%Y.%m.%d")
           TAG="${DATE}-n${{ github.run_number }}"
-          
-         
+
+          cat > release-notes.md <<EOF
+          ### 🚀 Build Information
+
+          | Component | Details |
+          | :--- | :--- |
+          | **Sultan** | [\`$S_TAG\`](https://github.com/ZQZCC/android_kernel_google_tensynos/commit/$S_REV) |
+          | **Manager** | [KowSU](https://github.com/KOWX712/KernelSU) |
+          | **KowSU** | \`$KSU_VER\` |
+          | **SUSFS Mini** | [\`$SUSFS_VER\`](https://gitlab.com/simonpunk/susfs4ksu/-/commit/$SUSFS_REV) |
+          | **Compiler** | \`$GCC_VERSION\` |
+
+          ### 🛠️ Networking Features
+
+          - **TCP:** BBR (default) + FQ
+          - **Routing:** Policy routing + IPSet
+          - **Network:** TPROXY, IPv6 NAT, XFRM/ESP
+
+          EOF
+
           gh release create "$TAG" "${{ env.ZIP_PATH }}" \
-            --title "Kernel Build — $TAG" \
-            --notes "
-            ### 🚀 Build Information
-            | Component | Details |
-            | :--- | :--- |
-            | **Sultan** | \`$S_TAG\` |
-            | **Manager** | [KowSU](https://github.com/KOWX712/KernelSU) |
-            | **KowSU** | \`$KSU_VER\` |
-            | **SuSFS Mini** | \`$SUSFS_VER\` |
-            | **Compiler** | \`$GCC_VERSION\` |
-            
-            ### 🛠️ Networking Features (Fortress)
-            - **TCP Congestion:** BBR (v1) + FQ
-            - **Routing:** Policy Routing (Table 1066) + IPSet (64k)
-            - **Fixes:** ADDRTYPE Match, Google VPN (XFRM), TTL 64 Share
-            
-            > Built for Pixel 9 (zumapro)."
+            --target "$GITHUB_SHA" \
+            --title "Sultan KowSU SUSFS Mini - $TAG" \
+            --notes-file release-notes.md
