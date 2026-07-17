@@ -1,0 +1,364 @@
+name: Build Sultan17 + xxKSU Manual + NoMount
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  SOURCE_REPO: https://github.com/Ante0/SULTAN17.git
+  SOURCE_BRANCH: sultan-17
+  ANYKERNEL_REPO: https://github.com/Ante0/AnyKernel3.git
+  ANYKERNEL_BRANCH: sultan-17-caimito
+  SCRIPTS_REPO: https://github.com/TheSillyOk/sh
+  KSU_REPO: ZQZCC/xxKSU
+  KSU_BRANCH: master
+  GCC_VERSION: "15.3.rel1"
+  DEFAULT_TCP_CONG: bbr3
+  # DEFAULT_TCP_CONG: cubic
+
+jobs:
+  build:
+    name: Build Sultan17 zumapro Manual Hooks BBRv3 Kernel
+    runs-on: ubuntu-latest
+    outputs:
+      ksu_ver: ${{ steps.meta.outputs.ksu_ver }}
+      s_tag: ${{ steps.meta.outputs.s_tag }}
+      s_rev: ${{ steps.meta.outputs.s_rev }}
+      nomount_rev: ${{ steps.meta.outputs.nomount_rev }}
+      nomount_tag: ${{ steps.meta.outputs.nomount_tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install GCC
+        run: |
+          ARCHIVE="arm-gnu-toolchain-${{ env.GCC_VERSION }}-x86_64-aarch64-none-linux-gnu.tar.xz"
+          URL="https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/${{ env.GCC_VERSION }}/${ARCHIVE}"
+
+          wget -q "$URL" -O "$ARCHIVE"
+          tar -xf "$ARCHIVE"
+          echo "GCC_PATH=$GITHUB_WORKSPACE/arm-gnu-toolchain-${{ env.GCC_VERSION }}-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-" >> "$GITHUB_ENV"
+
+      - name: Clone Source
+        run: |
+          git clone --depth=1 "${{ env.SOURCE_REPO }}" -b "${{ env.SOURCE_BRANCH }}" sultan
+          git clone --depth=1 "${{ env.ANYKERNEL_REPO }}" -b "${{ env.ANYKERNEL_BRANCH }}" AK3
+          git clone --depth=1 "${{ env.SCRIPTS_REPO }}" sh
+
+      - name: Metadata
+        id: meta
+        run: |
+          S_TAG="${{ env.SOURCE_BRANCH }}"
+          S_REV=$(git -C sultan rev-parse HEAD)
+          K_VER=$(./sh/get_ksuver.sh "ZQZCC" "xxKSU" "${{ env.KSU_BRANCH }}" || echo "unknown")
+          NOMOUNT_REV=$(git ls-remote https://github.com/maxsteeel/nomount.git refs/heads/experimental/hookless | awk 'NR == 1 { print $1 }')
+          if [ -z "$NOMOUNT_REV" ]; then
+            echo "::error::Unable to resolve the NoMount experimental/hookless revision"
+            exit 1
+          fi
+          NOMOUNT_TAG=$(curl -fLSs "https://raw.githubusercontent.com/maxsteeel/nomount/$NOMOUNT_REV/module/module.prop" | sed -n 's/^version=//p' | tr -d '\r' | head -n1)
+          NOMOUNT_TAG=${NOMOUNT_TAG:-untagged}
+          echo "ksu_ver=$K_VER" >> "$GITHUB_OUTPUT"
+          echo "s_tag=$S_TAG" >> "$GITHUB_OUTPUT"
+          echo "s_rev=$S_REV" >> "$GITHUB_OUTPUT"
+          echo "nomount_rev=$NOMOUNT_REV" >> "$GITHUB_OUTPUT"
+          echo "nomount_tag=$NOMOUNT_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: KSU & Patches
+        working-directory: sultan
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/${{ env.KSU_REPO }}/${{ env.KSU_BRANCH }}/kernel/setup.sh" | bash -s -- "${{ env.KSU_BRANCH }}"
+          git apply --check ../patches/sultan17-build-metadata.patch
+          git apply ../patches/sultan17-build-metadata.patch
+          git apply --check ../patches/gcc15-init-rodata-sultan17.patch
+          git apply ../patches/gcc15-init-rodata-sultan17.patch
+
+      - name: Apply BBRv3
+        working-directory: sultan
+        run: |
+          git apply --check ../patches/bbrv3/bbrv3-sultan17-6.1.patch
+          git apply ../patches/bbrv3/bbrv3-sultan17-6.1.patch
+
+      - name: NoMount & Patches
+        working-directory: sultan
+        run: |
+          NOMOUNT_BASE="https://raw.githubusercontent.com/maxsteeel/nomount/${{ steps.meta.outputs.nomount_rev }}"
+          curl -fLSs "$NOMOUNT_BASE/kernel/src/nomount.c" -o ./fs/nomount.c
+          curl -fLSs "$NOMOUNT_BASE/kernel/src/nomount.h" -o ./fs/nomount.h
+          curl -fLSs "$NOMOUNT_BASE/kernel/patches/nomount_6.1_kernel_integration.patch" -o nomount.patch
+          patch -p1 --fuzz=3 < nomount.patch
+
+      - name: Apply xxKSU Manual Hooks
+        working-directory: sultan
+        run: |
+          MANUAL_HOOKS_PATCH="$GITHUB_WORKSPACE/patches/xxksu-manual-hooks-sultan17-6.1.patch"
+          git apply --check "$MANUAL_HOOKS_PATCH"
+          git apply "$MANUAL_HOOKS_PATCH"
+
+      - name: Global Defconfig Analysis
+        working-directory: sultan
+        run: |
+          echo "=== Scanning All Relevant Defconfigs ==="
+          TARGET_DEFS=("zumapro_defconfig")
+          CHECK_FLAGS=("CONFIG_NETFILTER_ADVANCED" "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE" "CONFIG_KSU")
+          for def in "${TARGET_DEFS[@]}"; do
+            CONF_PATH="arch/arm64/configs/$def"
+            echo "[*] Checking $def..."
+            for flag in "${CHECK_FLAGS[@]}"; do
+              grep "$flag" "$CONF_PATH" || echo "  - $flag: missing"
+            done
+          done
+
+      - name: Inject Configuration (Fortress Deep Unlock)
+        working-directory: sultan
+        env:
+          CROSS_COMPILE: ${{ env.GCC_PATH }}
+          CC: ${{ env.GCC_PATH }}gcc
+          HOSTCFLAGS: -Wno-error=discarded-qualifiers
+        run: |
+          make O=out CROSS_COMPILE="$CROSS_COMPILE" CC="$CC" HOSTCFLAGS="$HOSTCFLAGS" zumapro_defconfig
+
+          enable_configs=(
+            # Core System & FS
+            TMPFS_XATTR
+            TMPFS_POSIX_ACL
+            # Advanced networking compatibility
+            NETFILTER_ADVANCED
+            IP_NF_TARGET_TTL
+            IP6_NF_TARGET_HL
+            IP6_NF_MATCH_HL
+            NETFILTER_XT_MATCH_ADDRTYPE
+            NETFILTER_XT_TARGET_TPROXY
+            NETFILTER_XT_TARGET_REDIRECT
+            NETFILTER_XT_MATCH_SOCKET
+            NETFILTER_XT_MATCH_MARK
+            NETFILTER_XT_MATCH_IPRANGE
+            NETFILTER_XT_MATCH_OWNER
+            NETFILTER_XT_MATCH_MAC
+            NETFILTER_XT_MATCH_CONNTRACK
+            NETFILTER_XT_MARK
+            NETFILTER_XT_CONNMARK
+            NETFILTER_XT_TARGET_CONNMARK
+            IP6_NF_NAT
+            IP6_NF_TARGET_MASQUERADE
+            IP_MULTIPLE_TABLES
+            IPV6_MULTIPLE_TABLES
+            # XFRM / IPsec
+            XFRM_ALGO
+            INET_ESP
+            XFRM_USER
+            XFRM_STATISTICS
+            # IPSet compatibility suite
+            IP_SET
+            NETFILTER_XT_SET
+            IP_SET_BITMAP_IP
+            IP_SET_BITMAP_IPMAC
+            IP_SET_BITMAP_PORT
+            IP_SET_HASH_IP
+            IP_SET_HASH_IPMARK
+            IP_SET_HASH_IPPORT
+            IP_SET_HASH_IPPORTIP
+            IP_SET_HASH_IPPORTNET
+            IP_SET_HASH_IPMAC
+            IP_SET_HASH_MAC
+            IP_SET_HASH_NETPORTNET
+            IP_SET_HASH_NET
+            IP_SET_HASH_NETNET
+            IP_SET_HASH_NETPORT
+            IP_SET_HASH_NETIFACE
+            IP_SET_LIST_SET
+            # BBRv3, BBR v1 and CUBIC are compiled in; DEFAULT_TCP_CONG selects the default
+            TCP_CONG_ADVANCED
+            TCP_CONG_CUBIC
+            TCP_CONG_BBR
+            TCP_CONG_BBR3
+            NET_SCH_FQ
+            # NoMount and xxKSU
+            NOMOUNT
+            KSU
+            KSU_EXTRAS
+            KSU_THRONE_TRACKER_ALWAYS_THREADED
+            SECURITY_NETWORK
+            CGROUPS
+            CGROUP_BPF
+            CGROUP_SCHED
+            CGROUP_PIDS
+            CGROUP_FREEZER
+            INOTIFY_USER
+          )
+          disable_configs=(
+            BPF_STREAM_PARSER
+            INET_IPCOMP
+            XFRM_SUB_POLICY
+            TCP_CONG_BIC
+            TCP_CONG_WESTWOOD
+            TCP_CONG_HTCP
+            DEFAULT_BBR
+            KSU_ALLOWLIST_WORKAROUND
+            KSU_DEBUG
+            KSU_KPROBES_KSUD
+            KSU_HACK_ARM64_BRANCH_LINK
+            KSU_TAMPER_SYSCALL_TABLE
+            KSU_LSM_SECURITY_HOOKS
+          )
+
+          for config in "${enable_configs[@]}"; do
+            scripts/config --file out/.config --enable "$config"
+          done
+          for config in "${disable_configs[@]}"; do
+            scripts/config --file out/.config --disable "$config"
+          done
+          case "$DEFAULT_TCP_CONG" in
+            bbr3)
+              default_cong_config=DEFAULT_BBR3
+              alternate_cong_config=DEFAULT_CUBIC
+              ;;
+            cubic)
+              default_cong_config=DEFAULT_CUBIC
+              alternate_cong_config=DEFAULT_BBR3
+              ;;
+            *)
+              echo "::error::Unsupported DEFAULT_TCP_CONG: $DEFAULT_TCP_CONG"
+              exit 1
+              ;;
+          esac
+          scripts/config --file out/.config --disable "$alternate_cong_config"
+          scripts/config --file out/.config --enable "$default_cong_config"
+          scripts/config --file out/.config --set-val LOG_BUF_SHIFT 21
+
+          make O=out CROSS_COMPILE="$CROSS_COMPILE" CC="$CC" HOSTCFLAGS="$HOSTCFLAGS" olddefconfig
+
+          required_configs=(
+            NETFILTER_XT_TARGET_TPROXY
+            NETFILTER_XT_TARGET_REDIRECT
+            IP6_NF_NAT
+            XFRM_USER
+            INET_ESP
+            IP_SET
+            NETFILTER_XT_SET
+            IP_SET_HASH_IP
+            TCP_CONG_CUBIC
+            TCP_CONG_BBR
+            TCP_CONG_BBR3
+            NET_SCH_FQ
+            "$default_cong_config"
+          )
+          for config in "${required_configs[@]}"; do
+            if ! grep -q "^CONFIG_${config}=y$" out/.config; then
+              echo "::error::Required kernel option CONFIG_${config}=y was not resolved"
+              exit 1
+            fi
+          done
+          required_disabled_configs=(
+            BPF_STREAM_PARSER
+            INET_IPCOMP
+            XFRM_SUB_POLICY
+            DEFAULT_BBR
+            "$alternate_cong_config"
+          )
+          for config in "${required_disabled_configs[@]}"; do
+            if grep -Eq "^CONFIG_${config}=(y|m)$" out/.config; then
+              echo "::error::Kernel option CONFIG_${config} was unexpectedly enabled"
+              exit 1
+            fi
+          done
+          grep -q "^CONFIG_DEFAULT_TCP_CONG=\"${DEFAULT_TCP_CONG}\"$" out/.config || {
+            echo "::error::$DEFAULT_TCP_CONG was not resolved as the default TCP congestion control"
+            exit 1
+          }
+
+          grep -q '^CONFIG_KSU=y$' out/.config
+          if grep -Eq '^CONFIG_KSU_(KPROBES_KSUD|HACK_ARM64_BRANCH_LINK|TAMPER_SYSCALL_TABLE|LSM_SECURITY_HOOKS)=y$' out/.config; then
+            echo "::error::An automatic xxKSU hook mode was unexpectedly enabled"
+            exit 1
+          fi
+
+      - name: Build Kernel (Production)
+        working-directory: sultan
+        env:
+          KBUILD_BUILD_USER: build-user
+          KBUILD_BUILD_HOST: build-host
+          CROSS_COMPILE: ${{ env.GCC_PATH }}
+          CC: ${{ env.GCC_PATH }}gcc
+          HOSTCFLAGS: -Wno-error=discarded-qualifiers
+        run: |
+          make O=out CROSS_COMPILE="$CROSS_COMPILE" CC="$CC" HOSTCFLAGS="$HOSTCFLAGS" -j"$(nproc --all)"
+
+      - name: Package
+        run: |
+          cp sultan/out/arch/arm64/boot/Image.lz4 AK3/Image.lz4
+          cat sultan/out/google-devices/zumapro/dts/*.dtb > AK3/dtb
+          ZIP_NAME="Sultan17-zumapro-xxKSU-${{ steps.meta.outputs.ksu_ver }}-NoMount-ManualHooks-BBRv3.zip"
+          ( cd AK3 && zip -r9 "../$ZIP_NAME" . -x "*.git*" )
+          echo "ZIP_PATH=$PWD/$ZIP_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: Sultan17-zumapro-xxksu-nomount-manual-hooks-bbrv3
+          path: ${{ env.ZIP_PATH }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: sultan-zumapro-release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          path: ./artifacts
+          merge-multiple: true
+      - name: Tag and Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KSU_VER: ${{ needs.build.outputs.ksu_ver }}
+          S_TAG: ${{ needs.build.outputs.s_tag }}
+          S_REV: ${{ needs.build.outputs.s_rev }}
+          NOMOUNT_REV: ${{ needs.build.outputs.nomount_rev }}
+          NOMOUNT_TAG: ${{ needs.build.outputs.nomount_tag }}
+        run: |
+          ZIP_FILE=$(find ./artifacts -name 'Sultan17-zumapro-xxKSU-*-NoMount-ManualHooks-BBRv3.zip' -type f -print -quit)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "::error::The Sultan17 xxKSU NoMount Manual Hooks BBRv3 zip was not downloaded"
+            exit 1
+          fi
+
+          DATE=$(date +"%Y.%m.%d")
+          MAX_REV=$(git tag -l "${DATE}-r*" | sed "s/${DATE}-r//" | sort -n | tail -n1)
+          REV=$(( ${MAX_REV:-0} + 1 ))
+          TAG="${DATE}-r${REV}"
+
+          cat > release-notes.md <<EOF
+          ### 🚀 Build Information
+
+          | Component | Details |
+          | :--- | :--- |
+          | **Sultan17** | [\`$S_TAG\`](https://github.com/Ante0/SULTAN17/commit/$S_REV) |
+          | **Manager** | [KaSU](https://github.com/ZQZCC/xxKSU) |
+          | **xxKSU** | \`$KSU_VER\` |
+          | **NoMount** | [\`$NOMOUNT_TAG\`](https://github.com/maxsteeel/nomount/commit/$NOMOUNT_REV) |
+          | **Hook mode** | \`Full manual\` |
+          | **Compiler** | \`$GCC_VERSION\` |
+
+          ### 🛠️ Networking Features
+
+          - **TCP:** $DEFAULT_TCP_CONG default; BBRv3 + BBR v1 + CUBIC + FQ built in
+          - **Routing:** Policy routing + IPSet
+          - **Network:** TPROXY, IPv6 NAT, XFRM/ESP
+
+          EOF
+
+          gh release create "$TAG" "$ZIP_FILE" \
+            --target "$GITHUB_SHA" \
+            --title "Sultan17 Kernel Build - $TAG" \
+            --notes-file release-notes.md

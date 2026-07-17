@@ -1,8 +1,10 @@
 # BBRv3 patch
 
-`bbrv3-android14-6.1.patch` adds BBRv3 as the separate `bbr3` TCP
-congestion-control algorithm while retaining the kernel's existing BBR v1 and
-CUBIC implementations.
+The patches add BBRv3 as the separate `bbr3` TCP congestion-control algorithm
+while retaining the kernel's existing BBR v1 and CUBIC implementations.
+
+- `bbrv3-android14-6.1.patch`: Sultan Android 16 integration.
+- `bbrv3-sultan17-6.1.patch`: regenerated against Ante0 `sultan-17`.
 
 ## Sources
 
@@ -12,6 +14,7 @@ CUBIC implementations.
   [`3a75d651cf999e213c6998a7101eea7c5c6c741e`](https://github.com/WildKernels/kernel_patches/commit/3a75d651cf999e213c6998a7101eea7c5c6c741e).
 - Integration base: Sultan `16.0.0-sultan` at
   [`ec1598e9008e7cc254b29cce4591889cfef388ae`](https://github.com/ZQZCC/android_kernel_google_tensynos/commit/ec1598e9008e7cc254b29cce4591889cfef388ae).
+- Android 17 integration base: Ante0 `sultan-17`.
 
 ## Local safeguards
 
