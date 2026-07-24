@@ -11,7 +11,7 @@ env:
   SOURCE_REPO: https://github.com/Ante0/SULTAN17.git
   SOURCE_BRANCH: sultan-17
   ANYKERNEL_REPO: https://github.com/Ante0/AnyKernel3.git
-  ANYKERNEL_BRANCH: sultan-17-caimito
+  ANYKERNEL_BRANCH: sultan-17-zumapro
   SCRIPTS_REPO: https://github.com/TheSillyOk/sh
   KSU_REPO: ZQZCC/xxKSU
   KSU_BRANCH: master
