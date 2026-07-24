@@ -16,7 +16,10 @@ diff --git a/arch/arm64/configs/zumapro_defconfig b/arch/arm64/configs/zumapro_d
 index dd0aefb3f..49fa19b23 100644
 --- a/arch/arm64/configs/zumapro_defconfig
 +++ b/arch/arm64/configs/zumapro_defconfig
-@@ -1,4 +1,4 @@
+@@ -1,7 +1,7 @@
+ #test
+ CONFIG_TMPFS_XATTR=y
+ #end test
 -CONFIG_LOCALVERSION="-Sultan"
 +CONFIG_LOCALVERSION=""
  # CONFIG_LOCALVERSION_AUTO is not set
