@@ -53,9 +53,9 @@ jobs:
           S_TAG=${S_TAG:-latest}
           S_REV=$(git -C sultan rev-parse HEAD)
           K_VER=$(./sh/get_ksuver.sh "ZQZCC" "xxKSU" "${{ env.KSU_BRANCH }}" || echo "unknown")
-          NOMOUNT_REV=$(git ls-remote https://github.com/maxsteeel/nomount.git refs/heads/experimental/hookless | awk 'NR == 1 { print $1 }')
+          NOMOUNT_REV=$(git ls-remote https://github.com/maxsteeel/nomount.git refs/heads/dev | awk 'NR == 1 { print $1 }')
           if [ -z "$NOMOUNT_REV" ]; then
-            echo "::error::Unable to resolve the NoMount experimental/hookless revision"
+            echo "::error::Unable to resolve the NoMount dev revision"
             exit 1
           fi
           NOMOUNT_TAG=$(curl -fLSs "https://raw.githubusercontent.com/maxsteeel/nomount/$NOMOUNT_REV/module/module.prop" | sed -n 's/^version=//p' | tr -d '\r' | head -n1)

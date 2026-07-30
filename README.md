@@ -16,7 +16,7 @@ A high-performance, security-focused kernel for Pixel 9 series (zumapro), mergin
 | :--- | :--- | :--- |
 | **KowSU-SUSFS** | Official Sultan base with manual KowSU/SUSFS bridging. | [Official Sultan](https://github.com/kerneltoast/android_kernel_google_tensynos) |
 | **xxKSU-NoMount** | xxKSU with NoMount, available with standard or full manual hooks. | [Official Sultan](https://github.com/kerneltoast/android_kernel_google_tensynos) |
-| **Sultan17-xxKSU-NoMount** | Android 17 source with full manual hooks and BBRv3 enabled by default. | [Ante0/SULTAN17](https://github.com/Ante0/SULTAN17) |
+| **Sultan17-xxKSU-NoMount** | Android 17 source with full manual hooks and BBRv3 enabled by default. | [ZQZCC/SULTAN17](https://github.com/ZQZCC/SULTAN17) |
 
 ---
 

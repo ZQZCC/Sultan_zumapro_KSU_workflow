@@ -8,7 +8,7 @@ permissions:
   actions: write
 
 env:
-  SOURCE_REPO: https://github.com/Ante0/SULTAN17.git
+  SOURCE_REPO: https://github.com/ZQZCC/SULTAN17.git
   SOURCE_BRANCH: sultan-17
   ANYKERNEL_REPO: https://github.com/Ante0/AnyKernel3.git
   ANYKERNEL_BRANCH: sultan-17-zumapro
@@ -55,9 +55,9 @@ jobs:
           S_TAG="${{ env.SOURCE_BRANCH }}"
           S_REV=$(git -C sultan rev-parse HEAD)
           K_VER=$(./sh/get_ksuver.sh "ZQZCC" "xxKSU" "${{ env.KSU_BRANCH }}" || echo "unknown")
-          NOMOUNT_REV=$(git ls-remote https://github.com/maxsteeel/nomount.git refs/heads/experimental/hookless | awk 'NR == 1 { print $1 }')
+          NOMOUNT_REV=$(git ls-remote https://github.com/maxsteeel/nomount.git refs/heads/dev | awk 'NR == 1 { print $1 }')
           if [ -z "$NOMOUNT_REV" ]; then
-            echo "::error::Unable to resolve the NoMount experimental/hookless revision"
+            echo "::error::Unable to resolve the NoMount dev revision"
             exit 1
           fi
           NOMOUNT_TAG=$(curl -fLSs "https://raw.githubusercontent.com/maxsteeel/nomount/$NOMOUNT_REV/module/module.prop" | sed -n 's/^version=//p' | tr -d '\r' | head -n1)
@@ -343,7 +343,7 @@ jobs:
 
           | Component | Details |
           | :--- | :--- |
-          | **Sultan17** | [\`$S_TAG\`](https://github.com/Ante0/SULTAN17/commit/$S_REV) |
+          | **Sultan17** | [\`$S_TAG\`](https://github.com/ZQZCC/SULTAN17/commit/$S_REV) |
           | **Manager** | [KaSU](https://github.com/ZQZCC/xxKSU) |
           | **xxKSU** | \`$KSU_VER\` |
           | **NoMount** | [\`$NOMOUNT_TAG\`](https://github.com/maxsteeel/nomount/commit/$NOMOUNT_REV) |
