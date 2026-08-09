@@ -1,0 +1,39 @@
+diff --git a/fs/exec.c b/fs/exec.c
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1942,7 +1942,8 @@ out:
+ 	return retval;
+ }
+ 
+-static int do_execveat_common(int fd, struct filename *filename,
++static __attribute__((noinline, used)) int
++do_execveat_common(int fd, struct filename *filename,
+ 			      struct user_arg_ptr argv,
+ 			      struct user_arg_ptr envp,
+ 			      int flags)
+diff --git a/fs/open.c b/fs/open.c
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -418,7 +418,8 @@ static const struct cred *access_override_creds(void)
+ 	return old_cred;
+ }
+ 
+-static long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
++static __attribute__((noinline, used)) long
++do_faccessat(int dfd, const char __user *filename, int mode, int flags)
+ {
+ 	struct path path;
+ 	struct inode *inode;
+diff --git a/fs/stat.c b/fs/stat.c
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -214,7 +214,8 @@ int getname_statx_lookup_flags(int flags)
+  *
+  * 0 will be returned on success, and a -ve error code if unsuccessful.
+  */
+-static int vfs_statx(int dfd, struct filename *filename, int flags,
++static __attribute__((noinline, used)) int
++vfs_statx(int dfd, struct filename *filename, int flags,
+ 	      struct kstat *stat, u32 request_mask)
+ {
+ 	struct path path;

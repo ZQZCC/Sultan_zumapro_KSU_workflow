@@ -76,6 +76,8 @@ jobs:
           git apply ../patches/sultan17-build-metadata.patch
           git apply --check ../patches/gcc15-init-rodata-sultan17.patch
           git apply ../patches/gcc15-init-rodata-sultan17.patch
+          git apply --check ../patches/gcc-lto-bl-targets-sultan17.patch
+          git apply ../patches/gcc-lto-bl-targets-sultan17.patch
 
       - name: Apply BBRv3
         working-directory: sultan
@@ -282,6 +284,33 @@ jobs:
           HOSTCFLAGS: -Wno-error=discarded-qualifiers
         run: |
           make O=out CROSS_COMPILE="$CROSS_COMPILE" CC="$CC" HOSTCFLAGS="$HOSTCFLAGS" -j"$(nproc --all)"
+
+      - name: Verify GCC LTO BL Targets
+        working-directory: sultan
+        run: |
+          test -s out/System.map || {
+            echo "::error::System.map was not generated"
+            exit 1
+          }
+
+          for symbol in do_execveat_common do_faccessat vfs_statx; do
+            matches=$(awk -v symbol="$symbol" '$3 == symbol || index($3, symbol ".") == 1 { print $3 }' out/System.map)
+            if [ -z "$matches" ]; then
+              echo "::error::$symbol was removed by GCC LTO"
+              exit 1
+            fi
+            if printf '%s\n' "$matches" | grep -Eq '\.(isra|constprop|part)\.'; then
+              printf '%s\n' "$matches"
+              echo "::error::$symbol was folded into a calling-convention-changing clone"
+              exit 1
+            fi
+            if ! printf '%s\n' "$matches" | grep -Eq "^${symbol}(\.lto_priv\.[0-9]+)?$"; then
+              printf '%s\n' "$matches"
+              echo "::error::$symbol has no branch-link-compatible symbol"
+              exit 1
+            fi
+            printf '[ok] %s: %s\n' "$symbol" "$(printf '%s' "$matches" | tr '\n' ' ')"
+          done
 
       - name: Package
         run: |
