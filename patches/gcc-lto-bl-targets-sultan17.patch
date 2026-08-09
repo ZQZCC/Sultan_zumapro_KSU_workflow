@@ -6,7 +6,7 @@ diff --git a/fs/exec.c b/fs/exec.c
  }
  
 -static int do_execveat_common(int fd, struct filename *filename,
-+static __attribute__((noinline, used)) int
++static noinline __used int
 +do_execveat_common(int fd, struct filename *filename,
  			      struct user_arg_ptr argv,
  			      struct user_arg_ptr envp,
@@ -19,7 +19,7 @@ diff --git a/fs/open.c b/fs/open.c
  }
  
 -static long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
-+static __attribute__((noinline, used)) long
++static noinline __used long
 +do_faccessat(int dfd, const char __user *filename, int mode, int flags)
  {
  	struct path path;
@@ -32,7 +32,7 @@ diff --git a/fs/stat.c b/fs/stat.c
   * 0 will be returned on success, and a -ve error code if unsuccessful.
   */
 -static int vfs_statx(int dfd, struct filename *filename, int flags,
-+static __attribute__((noinline, used)) int
++static noinline __used int
 +vfs_statx(int dfd, struct filename *filename, int flags,
  	      struct kstat *stat, u32 request_mask)
  {
