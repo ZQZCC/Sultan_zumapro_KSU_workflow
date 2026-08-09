@@ -6,7 +6,7 @@ A high-performance, security-focused kernel for Pixel 9 series (zumapro), mergin
 - **Stealth Core:** Dedicated **KowSU + SUSFS Mini** and **xxKSU + NoMount** variants.
 - **Fortress Networking:** `atp4pixel` compatibility with BBR/BBRv3, IPSet, and XFRM/ESP support.
 - **NoMount:** A kernel-based file injection and path redirection framework for Android kernels.
-- **Hook Modes:** xxKSU syscall-table + LSM and full manual-hook variants.
+- **Hook Modes:** xxKSU syscall-table + LSM, full manual-hook, and ARM64 branch-link variants.
 
 ---
 
@@ -16,7 +16,7 @@ A high-performance, security-focused kernel for Pixel 9 series (zumapro), mergin
 | :--- | :--- | :--- |
 | **KowSU-SUSFS** | Official Sultan base with manual KowSU/SUSFS bridging. | [Official Sultan](https://github.com/kerneltoast/android_kernel_google_tensynos) |
 | **xxKSU-NoMount** | xxKSU with NoMount, available with standard or full manual hooks. | [Official Sultan](https://github.com/kerneltoast/android_kernel_google_tensynos) |
-| **Sultan17-xxKSU-NoMount** | Android 17 source with full manual hooks and BBRv3 enabled by default. | [ZQZCC/SULTAN17](https://github.com/ZQZCC/SULTAN17) |
+| **Sultan17-xxKSU-NoMount** | Android 17 source with full manual or ARM64 branch-link hooks; BBRv3 is enabled by default. | [ZQZCC/SULTAN17](https://github.com/ZQZCC/SULTAN17) |
 
 ---
 
