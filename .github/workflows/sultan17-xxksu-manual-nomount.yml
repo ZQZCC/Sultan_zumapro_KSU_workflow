@@ -83,14 +83,11 @@ jobs:
           git apply --check ../patches/bbrv3/bbrv3-sultan17-6.1.patch
           git apply ../patches/bbrv3/bbrv3-sultan17-6.1.patch
 
-      - name: NoMount & Patches
+      - name: Integrate NoMount
         working-directory: sultan
         run: |
           NOMOUNT_BASE="https://raw.githubusercontent.com/maxsteeel/nomount/${{ steps.meta.outputs.nomount_rev }}"
-          curl -fLSs "$NOMOUNT_BASE/kernel/src/nomount.c" -o ./fs/nomount.c
-          curl -fLSs "$NOMOUNT_BASE/kernel/src/nomount.h" -o ./fs/nomount.h
-          curl -fLSs "$NOMOUNT_BASE/kernel/patches/nomount_6.1_kernel_integration.patch" -o nomount.patch
-          patch -p1 --fuzz=3 < nomount.patch
+          curl -fLSs "$NOMOUNT_BASE/kernel/setup.sh" | bash -s -- "${{ steps.meta.outputs.nomount_rev }}"
 
       - name: Apply xxKSU Manual Hooks
         working-directory: sultan
