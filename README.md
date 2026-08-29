@@ -1,4 +1,4 @@
-# Sultan Zumapro KSU Workflow
+# Sultan KSU Workflow
 
 Custom Pixel 9 series kernel for personal use.
 
