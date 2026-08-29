@@ -15,6 +15,8 @@ env:
   SCRIPTS_REPO: https://github.com/TheSillyOk/sh
   KSU_REPO: ZQZCC/xxKSU
   KSU_BRANCH: master
+  NOMOUNT_REPO: ZQZCC/nomount
+  NOMOUNT_BRANCH: my
   GCC_VERSION: "15.3.rel1"
   DEFAULT_TCP_CONG: bbr3
   # DEFAULT_TCP_CONG: cubic
@@ -55,12 +57,12 @@ jobs:
           S_TAG="${{ env.SOURCE_BRANCH }}"
           S_REV=$(git -C sultan rev-parse HEAD)
           K_VER=$(./sh/get_ksuver.sh "ZQZCC" "xxKSU" "${{ env.KSU_BRANCH }}" || echo "unknown")
-          NOMOUNT_REV=$(git ls-remote https://github.com/maxsteeel/nomount.git refs/heads/dev | awk 'NR == 1 { print $1 }')
+          NOMOUNT_REV=$(git ls-remote "https://github.com/${{ env.NOMOUNT_REPO }}.git" "refs/heads/${{ env.NOMOUNT_BRANCH }}" | awk 'NR == 1 { print $1 }')
           if [ -z "$NOMOUNT_REV" ]; then
-            echo "::error::Unable to resolve the NoMount dev revision"
+            echo "::error::Unable to resolve the NoMount ${{ env.NOMOUNT_BRANCH }} revision"
             exit 1
           fi
-          NOMOUNT_TAG=$(curl -fLSs "https://raw.githubusercontent.com/maxsteeel/nomount/$NOMOUNT_REV/module/module.prop" | sed -n 's/^version=//p' | tr -d '\r' | head -n1)
+          NOMOUNT_TAG=$(curl -fLSs "https://raw.githubusercontent.com/${{ env.NOMOUNT_REPO }}/$NOMOUNT_REV/module/module.prop" | sed -n 's/^version=//p' | tr -d '\r' | head -n1)
           NOMOUNT_TAG=${NOMOUNT_TAG:-untagged}
           echo "ksu_ver=$K_VER" >> "$GITHUB_OUTPUT"
           echo "s_tag=$S_TAG" >> "$GITHUB_OUTPUT"
@@ -86,7 +88,7 @@ jobs:
       - name: Integrate NoMount
         working-directory: sultan
         run: |
-          NOMOUNT_BASE="https://raw.githubusercontent.com/maxsteeel/nomount/${{ steps.meta.outputs.nomount_rev }}"
+          NOMOUNT_BASE="https://raw.githubusercontent.com/${{ env.NOMOUNT_REPO }}/${{ steps.meta.outputs.nomount_rev }}"
           curl -fLSs "$NOMOUNT_BASE/kernel/setup.sh" | bash -s -- "${{ steps.meta.outputs.nomount_rev }}"
 
       - name: Apply xxKSU Manual Hooks
@@ -291,7 +293,7 @@ jobs:
           | **Sultan17** | [\`$S_TAG\`](https://github.com/ZQZCC/SULTAN17/commit/$S_REV) |
           | **Manager** | [KaSU](https://github.com/ZQZCC/xxKSU) |
           | **xxKSU** | \`$KSU_VER\` |
-          | **NoMount** | [\`$NOMOUNT_TAG\`](https://github.com/maxsteeel/nomount/commit/$NOMOUNT_REV) |
+          | **NoMount** | [\`$NOMOUNT_TAG\`](https://github.com/${{ env.NOMOUNT_REPO }}/commit/$NOMOUNT_REV) |
           | **Hook mode** | \`Full manual\` |
           | **Compiler** | \`$GCC_VERSION\` |
 
