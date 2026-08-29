@@ -177,6 +177,7 @@ jobs:
             # NoMount and xxKSU
             NOMOUNT
             KSU
+            KSU_TINYFS_SUCOMPAT
             KSU_EXTRAS
             KSU_THRONE_TRACKER_ALWAYS_THREADED
             SECURITY_NETWORK
@@ -197,6 +198,7 @@ jobs:
             DEFAULT_BBR
             KSU_ALLOWLIST_WORKAROUND
             KSU_DEBUG
+            KSU_FEATURE_ADBROOT
             KSU_KPROBES_KSUD
             KSU_HACK_ARM64_BRANCH_LINK
             KSU_TAMPER_SYSCALL_TABLE
@@ -242,6 +244,7 @@ jobs:
             TCP_CONG_BBR
             TCP_CONG_BBR3
             NET_SCH_FQ
+            KSU_TINYFS_SUCOMPAT
             "$default_cong_config"
           )
           for config in "${required_configs[@]}"; do
@@ -255,6 +258,7 @@ jobs:
             INET_IPCOMP
             XFRM_SUB_POLICY
             DEFAULT_BBR
+            KSU_FEATURE_ADBROOT
             "$alternate_cong_config"
           )
           for config in "${required_disabled_configs[@]}"; do
