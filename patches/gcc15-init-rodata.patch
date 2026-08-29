@@ -1,7 +1,0 @@
-diff --git a/include/linux/init.h b/include/linux/init.h
-index c60e344b6..3dd21f5d4 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -324 +324 @@ struct obs_kernel_param {
--	static const char __setup_str_##unique_id[] __initconst		\
-+	static const char __setup_str_##unique_id[] __section(".init.rodata.str") \
