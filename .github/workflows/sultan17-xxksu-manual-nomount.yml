@@ -112,7 +112,7 @@ jobs:
             done
           done
 
-      - name: Inject Configuration (Fortress Deep Unlock)
+      - name: Inject Configuration
         working-directory: sultan
         env:
           CROSS_COMPILE: ${{ env.GCC_PATH }}
@@ -224,7 +224,7 @@ jobs:
             exit 1
           fi
 
-      - name: Build Kernel (Production)
+      - name: Build Kernel
         working-directory: sultan
         env:
           KBUILD_BUILD_USER: build-user
@@ -286,18 +286,18 @@ jobs:
           TAG="${DATE}-r${REV}"
 
           cat > release-notes.md <<EOF
-          ### 🚀 Build Information
+          ### Build Information
 
           | Component | Details |
           | :--- | :--- |
-          | **Sultan17** | [\`$S_TAG\`](https://github.com/ZQZCC/SULTAN17/commit/$S_REV) |
+          | **Base** | [\`$S_TAG\`](https://github.com/ZQZCC/SULTAN17/commit/$S_REV) |
           | **Manager** | [KaSU](https://github.com/ZQZCC/xxKSU) |
-          | **xxKSU** | \`$KSU_VER\` |
+          | **Driver** | \`$KSU_VER\` |
           | **NoMount** | [\`$NOMOUNT_TAG\`](https://github.com/${{ env.NOMOUNT_REPO }}/commit/$NOMOUNT_REV) |
-          | **Hook mode** | \`Full manual\` |
+          | **Hook** | \`Full manual\` |
           | **Compiler** | \`$GCC_VERSION\` |
 
-          ### 🛠️ Networking
+          ### Networking
 
           - **TCP:** $DEFAULT_TCP_CONG default with FQ
 
