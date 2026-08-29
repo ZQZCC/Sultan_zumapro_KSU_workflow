@@ -5,9 +5,9 @@ Custom Pixel 9 series kernel for personal use.
 
 ## Features
 
-- **Fortress Networking:** BBRv3 with FQ support.
+- **Networking:** BBRv3 with FQ support.
 - **NoMount:** A kernel-based file injection and path redirection framework.
-- **Hook Modes:**  Full manual-hook, Tinyfs sucompact.
+- **Hook Modes:**  Full manual-hook with Tinyfs sucompact.
 
 
 ## Credits
