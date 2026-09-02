@@ -239,14 +239,14 @@ jobs:
         run: |
           cp sultan/out/arch/arm64/boot/Image.lz4 AK3/Image.lz4
           cat sultan/out/google-devices/zumapro/dts/*.dtb > AK3/dtb
-          ZIP_NAME="Sultan17-zumapro-xxKSU-${{ steps.meta.outputs.ksu_ver }}-NoMount-ManualHooks-BBRv3.zip"
+          ZIP_NAME="Sultan17-zumapro-xxKSU-${{ steps.meta.outputs.ksu_ver }}-NoMount-BBRv3.zip"
           ( cd AK3 && zip -r9 "../$ZIP_NAME" . -x "*.git*" )
           echo "ZIP_PATH=$PWD/$ZIP_NAME" >> "$GITHUB_ENV"
 
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
-          name: Sultan17-zumapro-xxksu-nomount-manual-hooks-bbrv3
+          name: Sultan17-zumapro-xxksu-nomount-bbrv3
           path: ${{ env.ZIP_PATH }}
 
   release:
@@ -274,9 +274,9 @@ jobs:
           NOMOUNT_REV: ${{ needs.build.outputs.nomount_rev }}
           NOMOUNT_TAG: ${{ needs.build.outputs.nomount_tag }}
         run: |
-          ZIP_FILE=$(find ./artifacts -name 'Sultan17-zumapro-xxKSU-*-NoMount-ManualHooks-BBRv3.zip' -type f -print -quit)
+          ZIP_FILE=$(find ./artifacts -name 'Sultan17-zumapro-xxKSU-*-NoMount-BBRv3.zip' -type f -print -quit)
           if [ -z "$ZIP_FILE" ]; then
-            echo "::error::The Sultan17 xxKSU NoMount Manual Hooks BBRv3 zip was not downloaded"
+            echo "::error::The Sultan17 xxKSU NoMount BBRv3 zip was not downloaded"
             exit 1
           fi
 
